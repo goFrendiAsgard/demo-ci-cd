@@ -16,6 +16,19 @@ jobs:
         with:
           fetch-depth: 0 # Fetch all history for all branches and tags
 
+      - name: Fetch PR branches
+        run: |
+          git fetch origin ${{ github.event.pull_request.base.ref }}:${{ github.event.pull_request.base.ref }}
+          git fetch origin ${{ github.event.pull_request.head.ref }}:${{ github.event.pull_request.head.ref }}
+
+      - name: Debugging - Check git status
+        run: |
+          pwd
+          ls -la
+          git status
+          git remote -v
+          git branch -a
+
       - name: Run zrb code-review and post comment
         env:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}

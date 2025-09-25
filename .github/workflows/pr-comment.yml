@@ -8,6 +8,8 @@ on:
 jobs:
   code-review:
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
     container:
       image: stalchmst/zrb:1.16.2
     steps:

@@ -10,7 +10,7 @@ code_review_task = cli.add_task(
             StrInput("source", default="HEAD"),
             StrInput("target", default="main"),
         ],
-        cmd="git diff {ctx.input.target} {ctx.input.source}"
+        cmd="git diff {ctx.input.target}...{ctx.input.source}"
     )
 )
 

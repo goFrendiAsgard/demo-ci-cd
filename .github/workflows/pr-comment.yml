@@ -1,4 +1,4 @@
-name: Comment on PR
+name: Comment on PR and Code Review
 
 on:
   pull_request:
@@ -6,26 +6,38 @@ on:
       - main
 
 jobs:
-  comment:
+  code-review:
     runs-on: ubuntu-latest
+    container:
+      image: stalchmst/zrb:1.16.2
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-
-      - name: Get tag
-        id: get_tag
-        run: echo "::set-output name=tag::$(git describe --tags --abbrev=0)"
-
-      - name: Comment on PR
-        uses: actions/github-script@v4
+      - name: Check out repository code
+        uses: actions/checkout@v3
         with:
-          github-token: ${{secrets.GITHUB_TOKEN}}
-          script: |
-            const { owner, repo, number } = context.issue;
-            const tag = "${{steps.get_tag.outputs.tag}}";
-            github.issues.createComment({
-              owner,
-              repo,
-              issue_number: number,
-              body: `Current commit tag: ${tag}`
-            });
+          fetch-depth: 0 # Fetch all history for all branches and tags
+
+      - name: Run zrb code-review and post comment
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+        run: |
+          set -e
+          echo "Running code review for PR from $GITHUB_HEAD_REF to $GITHUB_BASE_REF..."
+          REVIEW_COMMENT=$(zrb code-review --source "$GITHUB_HEAD_REF" --target "$GITHUB_BASE_REF")
+          
+          echo "Getting PR number..."
+          PR_NUMBER=$(jq --raw-output .pull_request.number "$GITHUB_EVENT_PATH")
+          if [ -z "$PR_NUMBER" ] || [ "$PR_NUMBER" = "null" ]; then
+            echo "Could not get PR number. Exiting."
+            exit 1
+          fi
+          echo "Commenting on PR #$PR_NUMBER"
+
+          # Create JSON payload for the comment
+          PAYLOAD=$(jq -n --arg body "$REVIEW_COMMENT" '{"body":$body}')
+
+          # Post the comment using the GitHub API
+          curl -s -S -X POST \
+            -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            -d "$PAYLOAD" \
+            "https://api.github.com/repos/${{github.repository}}/issues/$PR_NUMBER/comments"

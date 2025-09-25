@@ -27,8 +27,7 @@ def submit_comment_task(ctx: AnyContext):
     github_repository = os.environ.get("GITHUB_REPOSITORY")
 
     if not all([github_token, github_event_path, github_repository]):
-        ctx.log_error("Missing one or more required GitHub environment variables.")
-        return
+        raise ValueError("Missing one or more required GitHub environment variables.")
 
     with open(github_event_path, 'r') as f:
         event_data = json.load(f)
@@ -36,8 +35,7 @@ def submit_comment_task(ctx: AnyContext):
     pr_number = event_data.get("pull_request", {}).get("number")
 
     if not pr_number:
-        ctx.log_error("Could not get PR number from the event payload.")
-        return
+        raise ValueError("Could not get PR number from the event payload.")
 
     ctx.print(f"Commenting on PR #{pr_number}")
 
@@ -55,3 +53,4 @@ def submit_comment_task(ctx: AnyContext):
     except requests.exceptions.RequestException as e:
         ctx.log_error(f"Failed to post comment: {e}")
         ctx.log_error(f"Response: {response.text}")
+        raise RuntimeError(f"Failed to post comment: {e}\nResponse: {response.text}")

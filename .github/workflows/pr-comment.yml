@@ -23,21 +23,4 @@ jobs:
           set -e
           echo "Running code review for PR from $GITHUB_HEAD_REF to $GITHUB_BASE_REF..."
           REVIEW_COMMENT=$(zrb code-review --source "$GITHUB_HEAD_REF" --target "$GITHUB_BASE_REF")
-          
-          echo "Getting PR number..."
-          PR_NUMBER=$(jq --raw-output .pull_request.number "$GITHUB_EVENT_PATH")
-          if [ -z "$PR_NUMBER" ] || [ "$PR_NUMBER" = "null" ]; then
-            echo "Could not get PR number. Exiting."
-            exit 1
-          fi
-          echo "Commenting on PR #$PR_NUMBER"
-
-          # Create JSON payload for the comment
-          PAYLOAD=$(jq -n --arg body "$REVIEW_COMMENT" '{"body":$body}')
-
-          # Post the comment using the GitHub API
-          curl -s -S -X POST \
-            -H "Authorization: token $GITHUB_TOKEN" \
-            -H "Accept: application/vnd.github.v3+json" \
-            -d "$PAYLOAD" \
-            "https://api.github.com/repos/${{github.repository}}/issues/$PR_NUMBER/comments"
+          zrb submit-comment --comment "$REVIEW_COMMENT"

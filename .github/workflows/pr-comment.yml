@@ -38,6 +38,9 @@ jobs:
       - name: Run zrb code-review and post comment
         env:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+          ZRB_LLM_BASE_URL: ${{vars.ZRB_LLM_BASE_URL}}
+          ZRB_LLM_MODEL: ${{vars.ZRB_LLM_MODEL}}
+          ZRB_LLM_API_KEY: ${{secrets.ZRB_LLM_API_KEY}}
         run: |
           set -e
           echo "Running code review for PR from $GITHUB_HEAD_REF to $GITHUB_BASE_REF..."

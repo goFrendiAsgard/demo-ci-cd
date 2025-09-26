@@ -35,7 +35,7 @@ code_review_task = cli.add_task(
     group=cli,
 )
 def submit_comment_task(ctx: AnyContext):
-    comment = ctx.xcom["code-review"].peek()
+    comment = ctx.input.comment
     github_token = os.environ.get("GITHUB_TOKEN")
     github_event_path = os.environ.get("GITHUB_EVENT_PATH")
     github_repository = os.environ.get("GITHUB_REPOSITORY")

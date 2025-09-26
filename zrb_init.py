@@ -18,7 +18,7 @@ code_review_task = cli.add_task(
     LLMTask(
         name="code-review",
         upstream=git_diff_task,
-        messsage=(
+        message=(
             "You can use `read_file` and `read_many_files` to read the latest version of the files.\n"
             "Based on SOLID principles, please review the following code changes:\n"
             "{ctx.xcom['git-diff'].peek()}"

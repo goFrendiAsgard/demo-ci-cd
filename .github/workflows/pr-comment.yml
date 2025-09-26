@@ -1,4 +1,4 @@
-name: Comment on PR
+name: Comment on PR and Code Review
 
 on:
   pull_request:
@@ -6,26 +6,43 @@ on:
       - main
 
 jobs:
-  comment:
+  code-review:
+    if: github.event.pull_request.author_association == 'MEMBER' || github.event.pull_request.author_association == 'OWNER' || github.event.pull_request.author_association == 'COLLABORATOR'
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    container:
+      image: stalchmst/zrb:1.16.2
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-
-      - name: Get tag
-        id: get_tag
-        run: echo "::set-output name=tag::$(git describe --tags --abbrev=0)"
-
-      - name: Comment on PR
-        uses: actions/github-script@v4
+      - name: Check out repository code
+        uses: actions/checkout@v3
         with:
-          github-token: ${{secrets.GITHUB_TOKEN}}
-          script: |
-            const { owner, repo, number } = context.issue;
-            const tag = "${{steps.get_tag.outputs.tag}}";
-            github.issues.createComment({
-              owner,
-              repo,
-              issue_number: number,
-              body: `Current commit tag: ${tag}`
-            });
+          fetch-depth: 0 # Fetch all history for all branches and tags
+
+      - name: Mark repository as safe
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - name: Fetch PR branches
+        run: |
+          git fetch origin ${{ github.event.pull_request.base.ref }}:${{ github.event.pull_request.base.ref }}
+          git fetch origin ${{ github.event.pull_request.head.ref }}:${{ github.event.pull_request.head.ref }}
+
+      - name: Debugging - Check git status
+        run: |
+          pwd
+          ls -la
+          git status
+          git remote -v
+          git branch -a
+
+      - name: Run zrb code-review and post comment
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+          ZRB_LLM_BASE_URL: ${{vars.ZRB_LLM_BASE_URL}}
+          ZRB_LLM_MODEL: ${{vars.ZRB_LLM_MODEL}}
+          ZRB_LLM_API_KEY: ${{secrets.ZRB_LLM_API_KEY}}
+        run: |
+          set -e
+          echo "Running code review for PR from $GITHUB_HEAD_REF to $GITHUB_BASE_REF..."
+          REVIEW_COMMENT=$(zrb code-review --source "$GITHUB_HEAD_REF" --target "$GITHUB_BASE_REF")
+          zrb submit-comment --comment "$REVIEW_COMMENT"
